@@ -219,6 +219,7 @@ public class MainPresenter extends Presenter {
     public class PostStatusObserver implements StatusService.PostStatusObserver {
         @Override
         public void handleSuccess() {
+            view.displayMessage("Successfully Posted!");
             ((MainView) view).cancelPostingToast();
         }
 

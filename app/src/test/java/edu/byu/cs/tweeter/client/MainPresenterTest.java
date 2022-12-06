@@ -28,7 +28,7 @@ public class MainPresenterTest {
     }
 
     @Test
-    public void TestPostSuccessful() throws Exception {
+    public void TestPostSuccessful() {
         Mockito.doAnswer(invocation -> {
             ((MainPresenter.PostStatusObserver) invocation.getArgument(5)).handleSuccess();
             return new Object();
@@ -39,13 +39,15 @@ public class MainPresenterTest {
                         Mockito.anyList(),
                         Mockito.any(MainPresenter.PostStatusObserver.class));
 
+
         spyPresenter.postStatus("Some post");
 
+        Mockito.verify(mockView).displayMessage("Successfully Posted!");
         Mockito.verify(mockView).cancelPostingToast();
     }
 
     @Test
-    public void TestPostError() throws Exception {
+    public void TestPostError() {
         Mockito.doAnswer(invocation -> {
             ((MainPresenter.PostStatusObserver) invocation.getArgument(5)).handleFailure("Test error");
             return new Object();
@@ -62,22 +64,7 @@ public class MainPresenterTest {
     }
 
     @Test
-    public void TestPostException() throws Exception {
-        Mockito.doThrow(new Exception("Test exception")).when(mockService).postStatus(
-                Mockito.anyString(),
-                Mockito.any(User.class),
-                Mockito.anyString(),
-                Mockito.anyList(),
-                Mockito.anyList(),
-                Mockito.any(MainPresenter.PostStatusObserver.class));
-
-        spyPresenter.postStatus("Some post");
-
-        Mockito.verify(mockView).displayMessage("Failed to post status because of exception: Test exception");
-    }
-
-    @Test
-    public void TestPostStatusParams() throws Exception {
+    public void TestPostStatusParams() {
         Mockito.doAnswer(invocation -> {
             Assert.assertEquals("Some post", (String) invocation.getArgument(0));
             Assert.assertNotNull(invocation.getArgument(1));
