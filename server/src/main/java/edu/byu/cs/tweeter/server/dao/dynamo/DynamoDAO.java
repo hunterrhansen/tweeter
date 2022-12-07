@@ -19,23 +19,30 @@ import java.util.concurrent.TimeUnit;
 
 import edu.byu.cs.tweeter.server.dao.DAOException;
 
+/**
+ * An abstract DAO parent class for accessing data from a dynamodb database.
+ */
+public abstract class DynamoDAO {
 
-public class DynamoDAO {
     protected static final String AWS_REGION = "us-west-1";
     protected static final String TOKEN_TABLE_NAME = "auth-tokens";
+
     protected static final int BASE_TIMEOUT = 5;
+    protected static final int TOO_MANY_REQUESTS = 8;
 
-    protected final AmazonDynamoDB client;
-    protected final DynamoDB dynamoDB;
-
-    public DynamoDAO() {
-        client = AmazonDynamoDBClientBuilder
-                .standard()
-                .withRegion(AWS_REGION)
+    protected final AmazonDynamoDB client = AmazonDynamoDBClientBuilder
+            .standard()
+            .withRegion(AWS_REGION)
                 .build();
-        dynamoDB = new DynamoDB(client);
-    }
 
+    protected final DynamoDB dynamoDB = new DynamoDB(client);
+
+    /**
+     * Write a list of items to a table in a dynamodb database.
+     *
+     * @param writeItems the items to write
+     * @throws DAOException if an error occurs while writing the items
+     */
     protected void batchWriteItems(TableWriteItems writeItems) throws DAOException {
         try {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(writeItems);
@@ -43,7 +50,9 @@ public class DynamoDAO {
             double retries = 0;
             while (unprocessedItems.size() > 0) {
                 retries++;
-                if (retries > 8) throw new DAOException("Too many attempts to put statuses");
+                if (retries > TOO_MANY_REQUESTS) {
+                    throw new DAOException("Too many attempts to put statuses in database");
+                }
                 expWait(retries);
                 outcome = dynamoDB.batchWriteItemUnprocessed(unprocessedItems);
                 unprocessedItems = outcome.getUnprocessedItems();
@@ -53,27 +62,28 @@ public class DynamoDAO {
         }
     }
 
+    /**
+     * Sleep for a time based on the number of retries.
+     *
+     * @param retries the number of retries.
+     */
     protected void expWait(double retries) {
         try {
             TimeUnit.MILLISECONDS.sleep((long) (BASE_TIMEOUT * (Math.pow(2, retries))));
         } catch (InterruptedException e) {
-            System.out.println(e.getMessage());
             e.printStackTrace();
         }
     }
 
-    protected List<String> convertResultsToStrings(ItemCollection<QueryOutcome> results, String hashKey) {
-        Iterator<Item> iterator = results.iterator();
-        Item item = null;
-        List<String> strings = new ArrayList<>();
-        while (iterator.hasNext()) {
-            item = iterator.next();
-            strings.add(item.getString(hashKey));
-        }
-        return strings;
-    }
-
-    protected List<String> convertResultsToStrings(ItemCollection<QueryOutcome> results, String hashKey, String sortKey) {
+    /**
+     * Map the results of a query to a list of strings.
+     *
+     * @param results the results of a query
+     * @param hashKey the name of the hash key
+     * @param sortKey the name of the sort key
+     * @return a list of strings
+     */
+    protected List<String> mapResultsToStrings(ItemCollection<QueryOutcome> results, String hashKey, String sortKey) {
         Iterator<Item> iterator = results.iterator();
         Item item;
         List<String> strings = new ArrayList<>();
@@ -81,6 +91,24 @@ public class DynamoDAO {
             item = iterator.next();
             strings.add(item.getString(hashKey));
             strings.add(item.getString(sortKey));
+        }
+        return strings;
+    }
+
+    /**
+     * Map the results of a query to a list of strings.
+     *
+     * @param results the results of a query
+     * @param hashKey the name of the hash key
+     * @return a list of strings
+     */
+    protected List<String> mapResultsToStrings(ItemCollection<QueryOutcome> results, String hashKey) {
+        Iterator<Item> iterator = results.iterator();
+        Item item;
+        List<String> strings = new ArrayList<>();
+        while (iterator.hasNext()) {
+            item = iterator.next();
+            strings.add(item.getString(hashKey));
         }
         return strings;
     }

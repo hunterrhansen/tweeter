@@ -2,8 +2,6 @@ package edu.byu.cs.tweeter.server.service;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
-import org.checkerframework.checker.units.qual.A;
-
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -17,21 +15,26 @@ import javax.inject.Inject;
 
 import edu.byu.cs.tweeter.model.domain.AuthToken;
 import edu.byu.cs.tweeter.model.domain.User;
+import edu.byu.cs.tweeter.model.net.request.GetFollowersCountRequest;
+import edu.byu.cs.tweeter.model.net.request.GetFollowingCountRequest;
 import edu.byu.cs.tweeter.model.net.request.LoginRequest;
 import edu.byu.cs.tweeter.model.net.request.LogoutRequest;
 import edu.byu.cs.tweeter.model.net.request.RegisterRequest;
 import edu.byu.cs.tweeter.model.net.request.UserRequest;
+import edu.byu.cs.tweeter.model.net.response.GetFollowersCountResponse;
+import edu.byu.cs.tweeter.model.net.response.GetFollowingCountResponse;
 import edu.byu.cs.tweeter.model.net.response.LoginResponse;
 import edu.byu.cs.tweeter.model.net.response.LogoutResponse;
 import edu.byu.cs.tweeter.model.net.response.RegisterResponse;
 import edu.byu.cs.tweeter.model.net.response.UserResponse;
 import edu.byu.cs.tweeter.server.dao.DAOException;
-import edu.byu.cs.tweeter.server.dao.model.UserDBData;
+import edu.byu.cs.tweeter.server.dao.model.DBUser;
 import edu.byu.cs.tweeter.server.dao.UserDAO;
 
 public class UserService extends Service {
+
     private static final String IMAGE_METADATA = "image/png";
-    
+
     private final UserDAO userDAO;
 
     @Inject
@@ -49,7 +52,7 @@ public class UserService extends Service {
             throw new RuntimeException("[Bad Request] Missing a password");
         }
 
-        UserDBData userData;
+        DBUser userData;
         try {
             userData = getUserDAO().getUser(request.getUsername());
         } catch (Exception e) {
@@ -147,7 +150,7 @@ public class UserService extends Service {
         System.out.println("Putting user...");
 
         try {
-            getUserDAO().putUser(request.getUsername(), hashedPassword, salt, request.getFirstName(),
+            getUserDAO().addUser(request.getUsername(), hashedPassword, salt, request.getFirstName(),
                     request.getLastName(), imageURL, 0, 0);
             System.out.println("Successfully put user in table");
         } catch (Exception e) {
@@ -187,7 +190,7 @@ public class UserService extends Service {
 
         System.out.println("Getting user...");
 
-        UserDBData userData;
+        DBUser userData;
         try {
             userData = getUserDAO().getUser(request.getUsername());
         } catch (Exception e) {
@@ -204,8 +207,72 @@ public class UserService extends Service {
         return new UserResponse(userData.getUser());
     }
 
+    /**
+     * Gets the number of followers a user has. Uses the {@link UserDAO} to get the number of followers.
+     *
+     * @param request contains information about the user to check and any other information
+     * @return the response object.
+     */
+    public GetFollowersCountResponse getFollowersCount(GetFollowersCountRequest request) {
+        if (request.getTargetUser() == null || request.getTargetUser().getAlias() == null) {
+            throw new RuntimeException("[Bad Request] Request needs to have a follower");
+        }
+        else if (request.getAuthToken() == null) {
+            throw new RuntimeException("[Bad Request] Request needs to have an authToken");
+        }
+
+        System.out.println("Validating auth token...");
+
+        if (!authenticate(request.getAuthToken())) {
+            return new GetFollowersCountResponse("Unable to authenticate! Your session may have expired. Please log out and log back in.");
+        }
+
+        System.out.println("Valid auth token...");
+
+        System.out.println("Getting followers count...");
+
+        try {
+            return new GetFollowersCountResponse(getUserDAO().getFollowersCount(request.getTargetUser().getAlias()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("[DB Error] Unable to get follower count: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Gets the number of users a user is following. Uses the {@link UserDAO} to get the number of users the user is following.
+     *
+     * @param request
+     * @return
+     */
+    public GetFollowingCountResponse getFollowingCount(GetFollowingCountRequest request) {
+        if (request.getTargetUser() == null || request.getTargetUser().getAlias() == null) {
+            throw new RuntimeException("[Bad Request] Request needs to have a follower");
+        }
+        else if (request.getAuthToken() == null) {
+            throw new RuntimeException("[Bad Request] Request needs to have an authToken");
+        }
+
+        System.out.println("Validating auth token...");
+
+        if (!authenticate(request.getAuthToken())) {
+            return new GetFollowingCountResponse("Unable to authenticate! Your session may have expired. Please log out and log back in.");
+        }
+
+        System.out.println("Valid auth token...");
+
+        System.out.println("Getting following count...");
+
+        try {
+            return new GetFollowingCountResponse(getUserDAO().getFollowingCount(request.getTargetUser().getAlias()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("[DB Error] Unable to get followee count: " + e.getMessage());
+        }
+    }
+
     public void putTestUsers() {
-        List<UserDBData> userData = new ArrayList<>();
+        List<DBUser> userData = new ArrayList<>();
         String salt;
         String hashedPassword;
         int currentUserIndex = 0;
@@ -219,7 +286,7 @@ public class UserService extends Service {
         System.out.println("Putting gghansen...");
 
         try {
-            getUserDAO().putUser("@gghansen", hashedPassword, salt, "Hunter", "Hansen", "https://hunter-profile-images.s3.us-west-1.amazonaws.com/hunter.JPG", 10000, 0);
+            getUserDAO().addUser("@gghansen", hashedPassword, salt, "Hunter", "Hansen", "https://hunter-profile-images.s3.us-west-1.amazonaws.com/hunter.JPG", 10000, 0);
         } catch (DAOException e) {
             throw new RuntimeException("Unable to batch put users. Failed at gghansen: " + e.getMessage());
         }
@@ -240,7 +307,7 @@ public class UserService extends Service {
                 }
 
 
-                userData.add(new UserDBData(new User(
+                userData.add(new DBUser(new User(
                             "Test" + currentUserIndex,
                             "Test" + currentUserIndex,
                             "@test" + currentUserIndex,
@@ -249,7 +316,7 @@ public class UserService extends Service {
             }
 
             try {
-                getUserDAO().batchPutUsers(userData);
+                getUserDAO().batchAddUsers(userData);
             } catch (DAOException e) {
                 throw new RuntimeException("Unable to batch put users. Failed at " + i + "-" + (i+25) +
                         ": " + e.getMessage());

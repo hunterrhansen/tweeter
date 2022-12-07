@@ -12,9 +12,10 @@ import edu.byu.cs.tweeter.model.net.response.GetFeedResponse;
 import edu.byu.cs.tweeter.server.dao.StatusDAO;
 import edu.byu.cs.tweeter.server.dao.UserDAO;
 import edu.byu.cs.tweeter.server.dao.dynamo.StatusDynamoDAO;
-import edu.byu.cs.tweeter.server.dao.model.StatusDBData;
+import edu.byu.cs.tweeter.server.dao.model.DBStatus;
 
 public class FeedService extends Service {
+
     private final StatusDAO statusDAO;
     private final UserDAO userDAO;
 
@@ -24,13 +25,6 @@ public class FeedService extends Service {
         this.userDAO = userDAO;
     }
 
-    /**
-     * Returns an instance of {@link StatusDynamoDAO}. Allows mocking of the StatusDAO class
-     * for testing purposes. All usages of StatusDAO should get their StatusDAO
-     * instance from this method to allow for mocking of the instance.
-     *
-     * @return the instance.
-     */
     public StatusDAO getStatusDAO() { return this.statusDAO; }
 
     @Override
@@ -53,19 +47,19 @@ public class FeedService extends Service {
 
         System.out.println("Getting user feed...");
 
-        List<String> alternatingVals;
+        List<String> feedAliases;
         try {
-            alternatingVals = getStatusDAO().getFeedStatusInfo(
+            feedAliases = getStatusDAO().getFeedAliases(
                     request.getTargetUser().getAlias(), request.getLimit(), request.getLastItem() != null ? request.getLastItem().getID() : null);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("[DB Error] Unable to get status info from feed table: " + e.getMessage());
         }
-        if (alternatingVals == null || alternatingVals.isEmpty()) return new GetFeedResponse(new ArrayList<>(), false);
+        if (feedAliases == null || feedAliases.isEmpty()) return new GetFeedResponse(new ArrayList<>(), false);
 
-        List<StatusDBData> statusData;
+        List<DBStatus> statusData;
         try {
-            statusData = getStatusDAO().getFeed(alternatingVals);
+            statusData = getStatusDAO().getFeed(feedAliases);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("[DB Error] Unable to get statuses: " + e.getMessage());

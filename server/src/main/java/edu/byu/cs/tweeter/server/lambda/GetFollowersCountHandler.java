@@ -8,13 +8,13 @@ import com.google.inject.Injector;
 import edu.byu.cs.tweeter.model.net.request.GetFollowersCountRequest;
 import edu.byu.cs.tweeter.model.net.response.GetFollowersCountResponse;
 import edu.byu.cs.tweeter.server.dao.dynamo.DynamoModule;
-import edu.byu.cs.tweeter.server.service.FollowService;
+import edu.byu.cs.tweeter.server.service.UserService;
 
 public class GetFollowersCountHandler implements RequestHandler<GetFollowersCountRequest, GetFollowersCountResponse> {
     @Override
     public GetFollowersCountResponse handleRequest(GetFollowersCountRequest request, Context context) {
         Injector injector = Guice.createInjector(new DynamoModule());
-        FollowService followService = injector.getInstance(FollowService.class);
-        return followService.getFollowersCount(request);
+        UserService userService = injector.getInstance(UserService.class);
+        return userService.getFollowersCount(request);
     }
 }

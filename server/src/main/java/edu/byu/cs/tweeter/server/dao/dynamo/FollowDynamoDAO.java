@@ -20,9 +20,10 @@ import edu.byu.cs.tweeter.server.dao.DAOException;
 import edu.byu.cs.tweeter.server.dao.FollowDAO;
 
 /**
- * A DAO for accessing 'following' data from the database.
+ * A DAO for accessing 'follow' data from a dynamodb database.
  */
 public class FollowDynamoDAO extends DynamoDAO implements FollowDAO {
+
     private static final String FOLLOW_TABLE_NAME = "follows";
     private static final String INDEX_NAME = "follow-index";
     private static final String FOLLOWING_KEY = "followee_handle";
@@ -46,7 +47,7 @@ public class FollowDynamoDAO extends DynamoDAO implements FollowDAO {
             Table table = dynamoDB.getTable(FOLLOW_TABLE_NAME);
             ItemCollection<QueryOutcome> items = table.query(querySpec);
             if (items == null) return null;
-            return convertResultsToStrings(items, FOLLOWER_KEY);
+            return mapResultsToStrings(items, FOLLOWER_KEY);
         } catch (AmazonServiceException e) {
             throw new DAOException(e.getMessage());
         }
@@ -68,7 +69,7 @@ public class FollowDynamoDAO extends DynamoDAO implements FollowDAO {
             Index index = table.getIndex(INDEX_NAME);
             ItemCollection<QueryOutcome> items = index.query(querySpec);
             if (items == null) return null;
-            return convertResultsToStrings(items, FOLLOWING_KEY);
+            return mapResultsToStrings(items, FOLLOWING_KEY);
         } catch (AmazonServiceException e) {
             throw new DAOException(e.getMessage());
         }

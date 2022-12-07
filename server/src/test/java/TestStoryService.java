@@ -13,7 +13,7 @@ import edu.byu.cs.tweeter.model.net.response.GetStoryResponse;
 import edu.byu.cs.tweeter.server.dao.DAOException;
 import edu.byu.cs.tweeter.server.dao.StatusDAO;
 import edu.byu.cs.tweeter.server.dao.UserDAO;
-import edu.byu.cs.tweeter.server.dao.model.StatusDBData;
+import edu.byu.cs.tweeter.server.dao.model.DBStatus;
 import edu.byu.cs.tweeter.server.service.StoryService;
 import edu.byu.cs.tweeter.util.FakeData;
 
@@ -22,7 +22,7 @@ public class TestStoryService {
     private StatusDAO mockStatusDAO;
     private UserDAO mockUserDAO;
     private FakeData fakeData;
-    private List<StatusDBData> fakeStatusData;
+    private List<DBStatus> fakeStatusData;
     private List<User> fakeUsers;
 
     @Before
@@ -31,9 +31,9 @@ public class TestStoryService {
         fakeStatusData = new ArrayList<>();
         fakeUsers = new ArrayList<>();
 
-        fakeStatusData.add(new StatusDBData(fakeData.getFakeStatuses().get(0), fakeData.getFakeUsers().get(0).getAlias()));
-        fakeStatusData.add(new StatusDBData(fakeData.getFakeStatuses().get(1), fakeData.getFakeUsers().get(1).getAlias()));
-        fakeStatusData.add(new StatusDBData(fakeData.getFakeStatuses().get(2), fakeData.getFakeUsers().get(2).getAlias()));
+        fakeStatusData.add(new DBStatus(fakeData.getFakeStatuses().get(0), fakeData.getFakeUsers().get(0).getAlias()));
+        fakeStatusData.add(new DBStatus(fakeData.getFakeStatuses().get(1), fakeData.getFakeUsers().get(1).getAlias()));
+        fakeStatusData.add(new DBStatus(fakeData.getFakeStatuses().get(2), fakeData.getFakeUsers().get(2).getAlias()));
 
         fakeUsers.add(fakeData.getFakeUsers().get(0));
         fakeUsers.add(fakeData.getFakeUsers().get(1));

@@ -14,7 +14,7 @@ import edu.byu.cs.tweeter.model.domain.Status;
 import edu.byu.cs.tweeter.model.domain.User;
 import edu.byu.cs.tweeter.server.dao.DAOException;
 import edu.byu.cs.tweeter.server.dao.UserDAO;
-import edu.byu.cs.tweeter.server.dao.model.StatusDBData;
+import edu.byu.cs.tweeter.server.dao.model.DBStatus;
 
 public abstract class Service {
 
@@ -40,9 +40,9 @@ public abstract class Service {
         return new ArrayList<>(Arrays.asList(string.split("\\s,\\s")));
     }
 
-    protected List<String> getAllUniqueUsers(List<StatusDBData> statusData) {
+    protected List<String> getAllUniqueUsers(List<DBStatus> statusData) {
         Set<String> uniqueUsers = new HashSet<>();
-        for (StatusDBData data : statusData) {
+        for (DBStatus data : statusData) {
             uniqueUsers.add(data.getPosterAlias());
         }
         return new ArrayList<>(uniqueUsers);
@@ -56,9 +56,9 @@ public abstract class Service {
         return userMap;
     }
 
-    protected List<Status> extractStatuses(List<StatusDBData> statusData, Map<String, User> userMap) {
+    protected List<Status> extractStatuses(List<DBStatus> statusData, Map<String, User> userMap) {
         List<Status> statuses = new ArrayList<>();
-        for (StatusDBData data : statusData) {
+        for (DBStatus data : statusData) {
             data.getStatus().setUser(userMap.get(data.getPosterAlias()));
             statuses.add(data.getStatus());
         }

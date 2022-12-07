@@ -3,7 +3,6 @@ package edu.byu.cs.tweeter.server.dao.dynamo;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.dynamodbv2.document.BatchGetItemOutcome;
-import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.amazonaws.services.dynamodbv2.document.Table;
@@ -15,7 +14,6 @@ import com.amazonaws.services.dynamodbv2.document.spec.GetItemSpec;
 import com.amazonaws.services.dynamodbv2.document.spec.UpdateItemSpec;
 import com.amazonaws.services.dynamodbv2.document.utils.ValueMap;
 import com.amazonaws.services.dynamodbv2.model.KeysAndAttributes;
-import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -35,10 +33,14 @@ import java.util.concurrent.TimeUnit;
 import edu.byu.cs.tweeter.model.domain.AuthToken;
 import edu.byu.cs.tweeter.model.domain.User;
 import edu.byu.cs.tweeter.server.dao.DAOException;
-import edu.byu.cs.tweeter.server.dao.model.UserDBData;
+import edu.byu.cs.tweeter.server.dao.model.DBUser;
 import edu.byu.cs.tweeter.server.dao.UserDAO;
 
+/**
+ * A DAO for accessing 'user' data from a dynamodb database.
+ */
 public class UserDynamoDAO extends DynamoDAO implements UserDAO {
+
     private static final String USER_TABLE_NAME = "users";
     private static final String BUCKET_NAME = "hunter-profile-images";
 
@@ -66,7 +68,7 @@ public class UserDynamoDAO extends DynamoDAO implements UserDAO {
     }
 
     @Override
-    public UserDBData getUser(String alias) throws DAOException {
+    public DBUser getUser(String alias) throws DAOException {
         Item outcome;
         try {
             Table table = dynamoDB.getTable(USER_TABLE_NAME);
@@ -95,7 +97,7 @@ public class UserDynamoDAO extends DynamoDAO implements UserDAO {
             throw new DAOException("User improperly stored in db");
         }
 
-        return new UserDBData(new User(firstName, lastName, alias, imageURL), hashedDBPassword, salt);
+        return new DBUser(new User(firstName, lastName, alias, imageURL), hashedDBPassword, salt);
     }
 
     @Override
@@ -123,7 +125,7 @@ public class UserDynamoDAO extends DynamoDAO implements UserDAO {
     }
 
     @Override
-    public void putUser(String alias, String hashedPassword, String salt, String firstName,
+    public void addUser(String alias, String hashedPassword, String salt, String firstName,
                         String lastName, String imageURL, int numFollowers, int numFollowing)
             throws DAOException {
         try {
@@ -144,9 +146,9 @@ public class UserDynamoDAO extends DynamoDAO implements UserDAO {
     }
 
     @Override
-    public void batchPutUsers(List<UserDBData> userDataList) throws DAOException {
+    public void batchAddUsers(List<DBUser> userDataList) throws DAOException {
         List<Item> items = new ArrayList<>();
-        for (UserDBData userData : userDataList) {
+        for (DBUser userData : userDataList) {
             User user = userData.getUser();
             items.add(new Item()
                     .withPrimaryKey(USER_KEY, user.getAlias())
@@ -280,7 +282,7 @@ public class UserDynamoDAO extends DynamoDAO implements UserDAO {
     }
 
     @Override
-    public void incrementFollowerCount(String alias, Integer val) throws DAOException {
+    public void putFollowerCount(String alias, int val) throws DAOException {
         try {
             Table table = dynamoDB.getTable(USER_TABLE_NAME);
 
@@ -300,7 +302,7 @@ public class UserDynamoDAO extends DynamoDAO implements UserDAO {
     }
 
     @Override
-    public void incrementFollowingCount(String alias, Integer val) throws DAOException {
+    public void putFollowingCount(String alias, int val) throws DAOException {
         try {
             Table table = dynamoDB.getTable(USER_TABLE_NAME);
 

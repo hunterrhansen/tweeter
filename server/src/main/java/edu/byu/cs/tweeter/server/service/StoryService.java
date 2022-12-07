@@ -11,27 +11,19 @@ import edu.byu.cs.tweeter.model.net.response.GetStoryResponse;
 import edu.byu.cs.tweeter.server.dao.StatusDAO;
 import edu.byu.cs.tweeter.server.dao.UserDAO;
 import edu.byu.cs.tweeter.server.dao.dynamo.StatusDynamoDAO;
-import edu.byu.cs.tweeter.server.dao.model.StatusDBData;
+import edu.byu.cs.tweeter.server.dao.model.DBStatus;
 
 public class StoryService extends Service {
-    private StatusDAO statusDAO;
-    private UserDAO userDAO;
 
-    public StoryService() {}
+    private final StatusDAO statusDAO;
+    private final UserDAO userDAO;
 
     @Inject
     public StoryService(StatusDAO statusDAO, UserDAO userDAO) {
         this.statusDAO = statusDAO;
         this.userDAO = userDAO;
     }
-
-    /**
-     * Returns an instance of {@link StatusDynamoDAO}. Allows mocking of the StatusDAO class
-     * for testing purposes. All usages of StatusDAO should get their StatusDAO
-     * instance from this method to allow for mocking of the instance.
-     *
-     * @return the instance.
-     */
+    
     public StatusDAO getStatusDAO() { return this.statusDAO; }
 
     @Override
@@ -54,7 +46,7 @@ public class StoryService extends Service {
 
         System.out.println("Getting user story...");
 
-        List<StatusDBData> statusData;
+        List<DBStatus> statusData;
         try {
             statusData = getStatusDAO().getStory(request.getTargetUser().getAlias(), request.getLimit(), request.getLastItem());
         } catch (Exception e) {

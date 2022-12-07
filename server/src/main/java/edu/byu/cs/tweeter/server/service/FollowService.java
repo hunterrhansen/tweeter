@@ -28,6 +28,7 @@ import edu.byu.cs.tweeter.server.dao.dynamo.FollowDynamoDAO;
  * Contains the business logic for getting the users a user is following.
  */
 public class FollowService extends Service {
+
     private final FollowDAO followDAO;
     private final UserDAO userDAO;
 
@@ -52,13 +53,11 @@ public class FollowService extends Service {
     public UserDAO getUserDAO() { return this.userDAO; }
 
     /**
-     * Returns the users that are following the user that is specified. Uses information in
-     * the request object to limit the number of followers returned and to return the next set of
-     * followers after any that were returned in a previous request. Uses the {@link FollowDynamoDAO} to
-     * get the followers.
+     * Returns the users that the user specified in the request is getting followed by. Uses the
+     * {@link FollowDAO} to get the users.
      *
      * @param request contains the data required to fulfill the request.
-     * @return the followers.
+     * @return the followees.
      */
     public GetFollowersResponse getFollowers(GetFollowersRequest request) {
         if (request.getTargetUser() == null || request.getTargetUser().getAlias() == null) {
@@ -104,12 +103,11 @@ public class FollowService extends Service {
     }
 
     /**
-     * Returns the users that the user specified in the request is following. Uses information in
-     * the request object to limit the number of followees returned and to return the next set of
-     * followees after any that were returned in a previous request. Uses the {@link FollowDynamoDAO} to
-     * get the followees.
+     * Returns the users that the user specified in the request is following. Uses the
+     * {@link FollowDAO} to get the users.
      *
-     * @param request contains the data required to fulfill the request.
+     * @param request contains information about the user whose followees are to be returned and any
+     *                other information required to satisfy the request.
      * @return the followees.
      */
     public GetFollowingResponse getFollowees(GetFollowingRequest request) {
@@ -153,6 +151,12 @@ public class FollowService extends Service {
         }
     }
 
+    /**
+     * Follow a user. Uses the {@link FollowDAO} to follow the user.
+     *
+     * @param request contains information about the user to follow and any other information
+     * @return the response object.
+     */
     public FollowResponse follow(FollowRequest request) {
         if (request.getLoggedInUser() == null || request.getLoggedInUser().getAlias() == null) {
             throw new RuntimeException("[Bad Request] Request needs to have a logged in user");
@@ -186,14 +190,14 @@ public class FollowService extends Service {
         System.out.println("Incrementing following and follower counts...");
 
         try {
-            getUserDAO().incrementFollowingCount(request.getLoggedInUser().getAlias(), 1);
+            getUserDAO().putFollowingCount(request.getLoggedInUser().getAlias(), 1);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("[DB Error] Unable to update following count: " + e.getMessage());
         }
 
         try {
-            getUserDAO().incrementFollowerCount(request.getFollowee().getAlias(), 1);
+            getUserDAO().putFollowerCount(request.getFollowee().getAlias(), 1);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("[DB Error] Unable to update followers count for user \"" +
@@ -205,6 +209,12 @@ public class FollowService extends Service {
         return new FollowResponse(true);
     }
 
+    /**
+     * Unfollow a user. Uses the {@link FollowDAO} to unfollow the user.
+     *
+     * @param request contains information about the user to unfollow and any other information
+     * @return the response object.
+     */
     public UnfollowResponse unfollow(UnfollowRequest request) {
         if (request.getLoggedInUser() == null || request.getLoggedInUser().getAlias() == null) {
             throw new RuntimeException("[Bad Request] Request needs to have a logged in user");
@@ -238,14 +248,14 @@ public class FollowService extends Service {
         System.out.println("Decrementing following and follower counts...");
 
         try {
-            getUserDAO().incrementFollowingCount(request.getLoggedInUser().getAlias(), -1);
+            getUserDAO().putFollowingCount(request.getLoggedInUser().getAlias(), -1);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("[DB Error] Unable to update following count: " + e.getMessage());
         }
 
         try {
-            getUserDAO().incrementFollowerCount(request.getUnfollowee().getAlias(), -1);
+            getUserDAO().putFollowerCount(request.getUnfollowee().getAlias(), -1);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("[DB Error] Unable to update followers count for user \"" +
@@ -257,6 +267,12 @@ public class FollowService extends Service {
         return new UnfollowResponse(true);
     }
 
+    /**
+     * Checks if a user follows another. Uses the {@link FollowDAO} to check if the user follows the other.
+     *
+     * @param request contains information about the user to check and any other information
+     * @return the response object.
+     */
     public IsFollowerResponse isFollower(IsFollowerRequest request) {
         if (request.getFollower() == null) {
             throw new RuntimeException("[Bad Request] Request needs to have a follower");
@@ -286,58 +302,6 @@ public class FollowService extends Service {
             e.printStackTrace();
             throw new RuntimeException("[DB Error] Unable to determine follow relationship between \"" +
                 request.getFollowee().getAlias() + "\" and \"" + request.getFollower().getAlias() + "\"");
-        }
-    }
-
-    public GetFollowersCountResponse getFollowersCount(GetFollowersCountRequest request) {
-        if (request.getTargetUser() == null || request.getTargetUser().getAlias() == null) {
-            throw new RuntimeException("[Bad Request] Request needs to have a follower");
-        }
-        else if (request.getAuthToken() == null) {
-            throw new RuntimeException("[Bad Request] Request needs to have an authToken");
-        }
-
-        System.out.println("Validating auth token...");
-
-        if (!authenticate(request.getAuthToken())) {
-            return new GetFollowersCountResponse("Unable to authenticate! Your session may have expired. Please log out and log back in.");
-        }
-
-        System.out.println("Valid auth token...");
-
-        System.out.println("Getting followers count...");
-
-        try {
-            return new GetFollowersCountResponse(getUserDAO().getFollowersCount(request.getTargetUser().getAlias()));
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("[DB Error] Unable to get follower count: " + e.getMessage());
-        }
-    }
-
-    public GetFollowingCountResponse getFollowingCount(GetFollowingCountRequest request) {
-        if (request.getTargetUser() == null || request.getTargetUser().getAlias() == null) {
-            throw new RuntimeException("[Bad Request] Request needs to have a follower");
-        }
-        else if (request.getAuthToken() == null) {
-            throw new RuntimeException("[Bad Request] Request needs to have an authToken");
-        }
-
-        System.out.println("Validating auth token...");
-
-        if (!authenticate(request.getAuthToken())) {
-            return new GetFollowingCountResponse("Unable to authenticate! Your session may have expired. Please log out and log back in.");
-        }
-
-        System.out.println("Valid auth token...");
-
-        System.out.println("Getting following count...");
-
-        try {
-            return new GetFollowingCountResponse(getUserDAO().getFollowingCount(request.getTargetUser().getAlias()));
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("[DB Error] Unable to get followee count: " + e.getMessage());
         }
     }
 

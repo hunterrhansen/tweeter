@@ -6,6 +6,9 @@ import edu.byu.cs.tweeter.server.dao.FollowDAO;
 import edu.byu.cs.tweeter.server.dao.StatusDAO;
 import edu.byu.cs.tweeter.server.dao.UserDAO;
 
+/**
+ * Bind the DAO interface classes with their DynamoDB implementation classes.
+ */
 public class DynamoModule extends AbstractModule {
     @Override
     public void configure() {
